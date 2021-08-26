@@ -834,6 +834,16 @@ Host.Version_f = function()
 	Con.Print(Def.timedate);
 };
 
+Host.Link = function()
+{
+	if (Cmd.argv.length <= 1)
+	{
+		Con.Print('USAGE: link <URL>\n');
+		return;
+	}
+	window.top.location.href = Cmd.argv[1];
+};
+
 Host.Say = function(teamonly)
 {
 	if (Cmd.client !== true)
@@ -1409,6 +1419,7 @@ Host.InitCommands = function()
 	Cmd.AddCommand('name', Host.Name_f);
 	Cmd.AddCommand('noclip', Host.Noclip_f);
 	Cmd.AddCommand('version', Host.Version_f);
+	Cmd.AddCommand('link', Host.Link);
 	Cmd.AddCommand('say', Host.Say);
 	Cmd.AddCommand('say_team', Host.Say_Team_f);
 	Cmd.AddCommand('tell', Host.Tell_f);

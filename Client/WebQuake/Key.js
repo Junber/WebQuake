@@ -389,8 +389,8 @@ Key.Event = function(key, down)
 			Key.Message(key);
 		else if (Key.dest.value === Key.dest.menu)
 			M.Keydown(key);
-		else
-			M.ToggleMenu_f();
+		//else
+		//	M.ToggleMenu_f();
 		return;
 	}
 

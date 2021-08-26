@@ -149,10 +149,7 @@ window.onload = function()
 	Sys.frame = setInterval(Host.Frame, 1000.0 / 60.0);
 };
 
-Sys.onbeforeunload = function()
-{
-	return 'Are you sure you want to quit?';
-};
+Sys.onbeforeunload = null;
 
 Sys.oncontextmenu = function(e)
 {
@@ -205,7 +202,7 @@ Sys.onmousedown = function(e)
 		return;
 	}
 	Key.Event(key, true)
-	e.preventDefault();
+	//e.preventDefault();
 };
 
 Sys.onmouseup = function(e)

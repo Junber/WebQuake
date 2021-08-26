@@ -517,7 +517,7 @@ CL.Rcon_f = function()
 		return;
 	}
 	var xhr = new XMLHttpRequest();
-	xhr.open('HEAD', 'http://' + to + '/rcon/' + message);
+	xhr.open('HEAD', 'http://' + to + '/rcon/' + message, false);
 	xhr.setRequestHeader('Authorization', 'Basic ' + pw);
 	xhr.send();
 };

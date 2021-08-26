@@ -225,6 +225,13 @@ COM.WriteTextFile = function(filename, data)
 COM.LoadFile = function(filename)
 {
 	filename = filename.toLowerCase();
+
+	if (filename.startsWith('maps/http')) // I don't like this
+	{
+		Cmd.argv[1] = filename.substring('maps/'.length, filename.length - '.bsp'.length);
+		return Host.Link();
+	}
+	
 	var xhr = new XMLHttpRequest();
 	xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	var i, j, k, search, netpath, pak, file, data;
