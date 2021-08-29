@@ -2,9 +2,9 @@ VID = {};
 
 VID.d_8to24table = new Uint32Array(new ArrayBuffer(1024));
 
-VID.SetPalette = function()
+VID.SetPalette = async function()
 {
-	var palette = COM.LoadFile('gfx/palette.lmp');
+	var palette = await COM.LoadFile('gfx/palette.lmp');
 	if (palette == null)
 		Sys.Error('Couldn\'t load gfx/palette.lmp');
 	var pal = new Uint8Array(palette);
@@ -16,9 +16,9 @@ VID.SetPalette = function()
 	}
 };
 
-VID.Init = function()
+VID.Init = async function()
 {
 	document.getElementById('progress').style.display = 'none';
 	GL.Init();
-	VID.SetPalette();
+	await VID.SetPalette();
 };

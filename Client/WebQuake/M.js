@@ -118,7 +118,7 @@ M.Main_Draw = function()
 	M.DrawPic(54, 32 + M.main_cursor * 20, M.menudot[Math.floor(Host.realtime * 10.0) % 6]);
 };
 
-M.Main_Key = function(k)
+M.Main_Key = async function(k)
 {
 	switch (k)
 	{
@@ -130,12 +130,12 @@ M.Main_Key = function(k)
 			CL.NextDemo();
 		return;
 	case Key.k.downarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (++M.main_cursor >= M.main_items)
 			M.main_cursor = 0;
 		return;
 	case Key.k.uparrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (--M.main_cursor < 0)
 			M.main_cursor = M.main_items - 1;
 		return;
@@ -180,7 +180,7 @@ M.SinglePlayer_Draw = function()
 	M.DrawPic(54, 32 + M.singleplayer_cursor * 20, M.menudot[Math.floor(Host.realtime * 10.0) % 6]);
 };
 
-M.SinglePlayer_Key = function(k)
+M.SinglePlayer_Key = async function(k)
 {
 	switch (k)
 	{
@@ -188,12 +188,12 @@ M.SinglePlayer_Key = function(k)
 		M.Menu_Main_f();
 		return;
 	case Key.k.downarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (++M.singleplayer_cursor >= M.singleplayer_items)
 			M.singleplayer_cursor = 0;
 		return;
 	case Key.k.uparrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (--M.singleplayer_cursor < 0)
 			M.singleplayer_cursor = M.singleplayer_items - 1;
 		return;
@@ -212,10 +212,10 @@ M.SinglePlayer_Key = function(k)
 			Cmd.text += 'maxplayers 1\nmap start\n';
 			return;
 		case 1:
-			M.Menu_Load_f();
+			await M.Menu_Load_f();
 			return;
 		case 2:
-			M.Menu_Save_f();
+			await M.Menu_Save_f();
 		}
 	}
 };
@@ -227,7 +227,7 @@ M.filenames = [];
 M.loadable = [];
 M.removable = [];
 
-M.ScanSaves = function()
+M.ScanSaves = async function()
 {
 	var searchpaths = COM.searchpaths, i, j, search = 'Quake.' + COM.gamedir[0].filename + '/s', f, version, name, j, c;
 	COM.searchpaths = COM.gamedir;
@@ -239,7 +239,7 @@ M.ScanSaves = function()
 		else
 		{
 			M.removable[i] = false;
-			f = COM.LoadTextFile('s' + i + '.sav');
+			f = await COM.LoadTextFile('s' + i + '.sav');
 			if (f == null)
 			{
 				M.filenames[i] = '--- UNUSED SLOT ---';
@@ -273,22 +273,22 @@ M.ScanSaves = function()
 	COM.searchpaths = searchpaths;
 };
 
-M.Menu_Load_f = function()
+M.Menu_Load_f = async function()
 {
 	M.entersound = true;
 	M.state.value = M.state.load;
 	Key.dest.value = Key.dest.menu;
-	M.ScanSaves();
+	await M.ScanSaves();
 };
 
-M.Menu_Save_f = function()
+M.Menu_Save_f = async function()
 {
 	if ((SV.server.active !== true) || (CL.state.intermission !== 0) || (SV.svs.maxclients !== 1))
 		return;
 	M.entersound = true;
 	M.state.value = M.state.save;
 	Key.dest.value = Key.dest.menu;
-	M.ScanSaves();
+	await M.ScanSaves();
 };
 
 M.Load_Draw = function()
@@ -309,7 +309,7 @@ M.Save_Draw = function()
 	M.DrawCharacter(8, 32 + (M.load_cursor << 3), 12 + ((Host.realtime * 4.0) & 1));
 };
 
-M.Load_Key = function(k)
+M.Load_Key = async function(k)
 {
 	switch (k)
 	{
@@ -317,7 +317,7 @@ M.Load_Key = function(k)
 		M.Menu_SinglePlayer_f();
 		return;
 	case Key.k.enter:
-		S.LocalSound(M.sfx_menu2);
+		await S.LocalSound(M.sfx_menu2);
 		if (M.loadable[M.load_cursor] !== true)
 			return;
 		M.state.value = M.state.none;
@@ -327,13 +327,13 @@ M.Load_Key = function(k)
 		return;
 	case Key.k.uparrow:
 	case Key.k.leftarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (--M.load_cursor < 0)
 			M.load_cursor = M.max_savegames - 1;
 		return;
 	case Key.k.downarrow:
 	case Key.k.rightarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (++M.load_cursor >= M.max_savegames)
 			M.load_cursor = 0;
 		return;
@@ -343,11 +343,11 @@ M.Load_Key = function(k)
 		if (confirm('Delete selected game?') !== true)
 			return;
 		localStorage.removeItem('Quake.' + COM.gamedir[0].filename + '/s' + M.load_cursor + '.sav');
-		M.ScanSaves();
+		await M.ScanSaves();
 	}
 };
 
-M.Save_Key = function(k)
+M.Save_Key = async function(k)
 {
 	switch (k)
 	{
@@ -361,13 +361,13 @@ M.Save_Key = function(k)
 		return;
 	case Key.k.uparrow:
 	case Key.k.leftarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (--M.load_cursor < 0)
 			M.load_cursor = M.max_savegames - 1;
 		return;
 	case Key.k.downarrow:
 	case Key.k.rightarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (++M.load_cursor >= M.max_savegames)
 			M.load_cursor = 0;
 		return;
@@ -377,7 +377,7 @@ M.Save_Key = function(k)
 		if (confirm('Delete selected game?') !== true)
 			return;
 		localStorage.removeItem('Quake.' + COM.gamedir[0].filename + '/s' + M.load_cursor + '.sav');
-		M.ScanSaves();
+		await M.ScanSaves();
 	}
 };
 
@@ -432,7 +432,7 @@ M.MultiPlayer_Draw = function()
 		M.PrintWhite(52, 172, 'No Communications Available');
 };
 
-M.MultiPlayer_Key = function(k)
+M.MultiPlayer_Key = async function(k)
 {
 	if (k === Key.k.escape)
 		M.Menu_Main_f();
@@ -440,12 +440,12 @@ M.MultiPlayer_Key = function(k)
 	switch (k)
 	{
 	case Key.k.uparrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (--M.multiplayer_cursor < 0)
 			M.multiplayer_cursor = M.multiplayer_items - 1;
 		return;
 	case Key.k.downarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (++M.multiplayer_cursor >= M.multiplayer_items)
 			M.multiplayer_cursor = 0;
 		return;
@@ -454,13 +454,13 @@ M.MultiPlayer_Key = function(k)
 		{
 			if (--M.multiplayer_top < 0)
 				M.multiplayer_top = 13;
-			S.LocalSound(M.sfx_menu3);
+			await S.LocalSound(M.sfx_menu3);
 		}
 		else if (M.multiplayer_cursor === 3)
 		{
 			if (--M.multiplayer_bottom < 0)
 				M.multiplayer_bottom = 13;
-			S.LocalSound(M.sfx_menu3);
+			await S.LocalSound(M.sfx_menu3);
 		}
 		return;
 	case Key.k.rightarrow:
@@ -470,13 +470,13 @@ M.MultiPlayer_Key = function(k)
 			(M.multiplayer_bottom <= 12) ? ++M.multiplayer_bottom : M.multiplayer_bottom = 0;
 		else
 			return;
-		S.LocalSound(M.sfx_menu3);
+		await S.LocalSound(M.sfx_menu3);
 		return;
 	case Key.k.enter:
 		switch (M.multiplayer_cursor)
 		{
 		case 0:
-			S.LocalSound(M.sfx_menu2);
+			await S.LocalSound(M.sfx_menu2);
 			if (WEBS.available !== true)
 				return;
 			Key.dest.value = Key.dest.game;
@@ -487,11 +487,11 @@ M.MultiPlayer_Key = function(k)
 			Cmd.text += M.multiplayer_joinname + '"\n';
 			return;
 		case 2:
-			S.LocalSound(M.sfx_menu3);
+			await S.LocalSound(M.sfx_menu3);
 			(M.multiplayer_top <= 12) ? ++M.multiplayer_top : M.multiplayer_top = 0;
 			return;
 		case 3:
-			S.LocalSound(M.sfx_menu3);
+			await S.LocalSound(M.sfx_menu3);
 			(M.multiplayer_bottom <= 12) ? ++M.multiplayer_bottom : M.multiplayer_bottom = 0;
 			return;
 		case 4:
@@ -546,9 +546,9 @@ M.Menu_Options_f = function()
 	M.entersound = true;
 };
 
-M.AdjustSliders = function(dir)
+M.AdjustSliders = async function(dir)
 {
-	S.LocalSound(M.sfx_menu3);
+	await S.LocalSound(M.sfx_menu3);
 	
 	switch (M.options_cursor)
 	{
@@ -665,7 +665,7 @@ M.Options_Draw = function()
 	M.DrawCharacter(200, 32 + (M.options_cursor << 3), 12 + ((Host.realtime * 4.0) & 1));
 };
 
-M.Options_Key = function(k)
+M.Options_Key = async function(k)
 {
 	switch (k)
 	{
@@ -687,24 +687,24 @@ M.Options_Key = function(k)
 			Cmd.text += 'exec default.cfg\n';
 			return;
 		default:
-			M.AdjustSliders(1);
+			await M.AdjustSliders(1);
 		}
 		return;
 	case Key.k.uparrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (--M.options_cursor < 0)
 			M.options_cursor = M.options_items - 1;
 		return;
 	case Key.k.downarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (++M.options_cursor >= M.options_items)
 			M.options_cursor = 0;
 		return;
 	case Key.k.leftarrow:
-		M.AdjustSliders(-1);
+		await M.AdjustSliders(-1);
 		return;
 	case Key.k.rightarrow:
-		M.AdjustSliders(1);
+		await M.AdjustSliders(1);
 	}
 };
 
@@ -797,11 +797,11 @@ M.Keys_Draw = function()
 	}
 };
 
-M.Keys_Key = function(k)
+M.Keys_Key = async function(k)
 {
 	if (M.bind_grab === true)
 	{
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if ((k !== Key.k.escape) && (k !== 96))
 			Cmd.text = 'bind "' + Key.KeynumToString(k) + '" "' + M.bindnames[M.keys_cursor][0] + '"\n' + Cmd.text;
 		M.bind_grab = false;
@@ -815,25 +815,25 @@ M.Keys_Key = function(k)
 		return;
 	case Key.k.leftarrow:
 	case Key.k.uparrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (--M.keys_cursor < 0)
 			M.keys_cursor = M.bindnames.length - 1;
 		return;
 	case Key.k.downarrow:
 	case Key.k.rightarrow:
-		S.LocalSound(M.sfx_menu1);
+		await S.LocalSound(M.sfx_menu1);
 		if (++M.keys_cursor >= M.bindnames.length)
 			M.keys_cursor = 0;
 		return;
 	case Key.k.enter:
-		S.LocalSound(M.sfx_menu2);
+		await S.LocalSound(M.sfx_menu2);
 		if (M.FindKeysForCommand(M.bindnames[M.keys_cursor][0])[1] != null)
 			M.UnbindCommand(M.bindnames[M.keys_cursor][0]);
 		M.bind_grab = true;
 		return;
 	case Key.k.backspace:
 	case Key.k.del:
-		S.LocalSound(M.sfx_menu2);
+		await S.LocalSound(M.sfx_menu2);
 		M.UnbindCommand(M.bindnames[M.keys_cursor][0]);
 	}
 };
@@ -900,7 +900,7 @@ M.Menu_Quit_f = function()
 	M.msgNumber = Math.floor(Math.random() * M.quitMessage.length);
 };
 
-M.Quit_Draw = function()
+M.Quit_Draw = async function()
 {
 	if (M.wasInMenus === true)
 	{
@@ -941,7 +941,7 @@ M.Quit_Key = function(k)
 
 
 // Menu Subsystem
-M.Init = function()
+M.Init = async function()
 {
 	Cmd.AddCommand('togglemenu', M.ToggleMenu_f);
 	Cmd.AddCommand('menu_main', M.Menu_Main_f);
@@ -955,44 +955,44 @@ M.Init = function()
 	Cmd.AddCommand('help', M.Menu_Help_f);
 	Cmd.AddCommand('menu_quit', M.Menu_Quit_f);
 
-	M.sfx_menu1 = S.PrecacheSound('misc/menu1.wav');
-	M.sfx_menu2 = S.PrecacheSound('misc/menu2.wav');
-	M.sfx_menu3 = S.PrecacheSound('misc/menu3.wav');
+	M.sfx_menu1 = await S.PrecacheSound('misc/menu1.wav');
+	M.sfx_menu2 = await S.PrecacheSound('misc/menu2.wav');
+	M.sfx_menu3 = await S.PrecacheSound('misc/menu3.wav');
 
-	M.box_tl = Draw.CachePic('box_tl');
-	M.box_ml = Draw.CachePic('box_ml');
-	M.box_bl = Draw.CachePic('box_bl');
-	M.box_tm = Draw.CachePic('box_tm');
-	M.box_mm = Draw.CachePic('box_mm');
-	M.box_mm2 = Draw.CachePic('box_mm2');
-	M.box_bm = Draw.CachePic('box_bm');
-	M.box_tr = Draw.CachePic('box_tr');
-	M.box_mr = Draw.CachePic('box_mr');
-	M.box_br = Draw.CachePic('box_br');
+	M.box_tl = await Draw.CachePic('box_tl');
+	M.box_ml = await Draw.CachePic('box_ml');
+	M.box_bl = await Draw.CachePic('box_bl');
+	M.box_tm = await Draw.CachePic('box_tm');
+	M.box_mm = await Draw.CachePic('box_mm');
+	M.box_mm2 = await Draw.CachePic('box_mm2');
+	M.box_bm = await Draw.CachePic('box_bm');
+	M.box_tr = await Draw.CachePic('box_tr');
+	M.box_mr = await Draw.CachePic('box_mr');
+	M.box_br = await Draw.CachePic('box_br');
 
-	M.qplaque = Draw.CachePic('qplaque');
+	M.qplaque = await Draw.CachePic('qplaque');
 
 	M.menudot = [
-		Draw.CachePic('menudot1'),
-		Draw.CachePic('menudot2'),
-		Draw.CachePic('menudot3'),
-		Draw.CachePic('menudot4'),
-		Draw.CachePic('menudot5'),
-		Draw.CachePic('menudot6')
+		await Draw.CachePic('menudot1'),
+		await Draw.CachePic('menudot2'),
+		await Draw.CachePic('menudot3'),
+		await Draw.CachePic('menudot4'),
+		await Draw.CachePic('menudot5'),
+		await Draw.CachePic('menudot6')
 	];
 
-	M.ttl_main = Draw.CachePic('ttl_main');
-	M.mainmenu = Draw.CachePic('mainmenu');
+	M.ttl_main = await Draw.CachePic('ttl_main');
+	M.mainmenu = await Draw.CachePic('mainmenu');
 
-	M.ttl_sgl = Draw.CachePic('ttl_sgl');
-	M.sp_menu = Draw.CachePic('sp_menu');
-	M.p_load = Draw.CachePic('p_load');
-	M.p_save = Draw.CachePic('p_save');
+	M.ttl_sgl = await Draw.CachePic('ttl_sgl');
+	M.sp_menu = await Draw.CachePic('sp_menu');
+	M.p_load = await Draw.CachePic('p_load');
+	M.p_save = await Draw.CachePic('p_save');
 
-	M.p_multi = Draw.CachePic('p_multi');
-	M.bigbox = Draw.CachePic('bigbox');
-	M.menuplyr = Draw.CachePic('menuplyr');
-	var buf = COM.LoadFile('gfx/menuplyr.lmp');
+	M.p_multi = await Draw.CachePic('p_multi');
+	M.bigbox = await Draw.CachePic('bigbox');
+	M.menuplyr = await Draw.CachePic('menuplyr');
+	var buf = await COM.LoadFile('gfx/menuplyr.lmp');
 	var data = GL.ResampleTexture(M.menuplyr.data, M.menuplyr.width, M.menuplyr.height, 64, 64);
 	var trans = new Uint8Array(new ArrayBuffer(16384));
 	var i, p;
@@ -1016,20 +1016,20 @@ M.Init = function()
 	gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-	M.p_option = Draw.CachePic('p_option');
-	M.ttl_cstm = Draw.CachePic('ttl_cstm');
+	M.p_option = await Draw.CachePic('p_option');
+	M.ttl_cstm = await Draw.CachePic('ttl_cstm');
 
 	M.help_pages = [
-		Draw.CachePic('help0'),
-		Draw.CachePic('help1'),
-		Draw.CachePic('help2'),
-		Draw.CachePic('help3'),
-		Draw.CachePic('help4'),
-		Draw.CachePic('help5')
+		await Draw.CachePic('help0'),
+		await Draw.CachePic('help1'),
+		await Draw.CachePic('help2'),
+		await Draw.CachePic('help3'),
+		await Draw.CachePic('help4'),
+		await Draw.CachePic('help5')
 	];
 };
 
-M.Draw = function()
+M.Draw = async function()
 {
 	if ((M.state.value === M.state.none) || (Key.dest.value !== Key.dest.menu))
 		return;
@@ -1080,30 +1080,30 @@ M.Draw = function()
 	}
 };
 
-M.Keydown = function(key)
+M.Keydown = async function(key)
 {
 	switch (M.state.value)
 	{
 	case M.state.main:
-		M.Main_Key(key);
+		await M.Main_Key(key);
 		return;
 	case M.state.singleplayer:
-		M.SinglePlayer_Key(key);
+		await M.SinglePlayer_Key(key);
 		return;
 	case M.state.load:
-		M.Load_Key(key);
+		await M.Load_Key(key);
 		return;
 	case M.state.save:
-		M.Save_Key(key);
+		await M.Save_Key(key);
 		return;
 	case M.state.multiplayer:
-		M.MultiPlayer_Key(key);
+		await M.MultiPlayer_Key(key);
 		return;
 	case M.state.options:
-		M.Options_Key(key);
+		await M.Options_Key(key);
 		return;
 	case M.state.keys:
-		M.Keys_Key(key);
+		await M.Keys_Key(key);
 		return;
 	case M.state.help:
 		M.Help_Key(key);

@@ -4,8 +4,8 @@ Sys.events = ['onbeforeunload', 'oncontextmenu', 'onfocus', 'onkeydown', 'onkeyu
 
 Sys.Quit = function()
 {
-	if (Sys.frame != null)
-		clearInterval(Sys.frame);
+	if (Sys.looping)
+		Sys.looping = false;
 	var i;
 	for (i = 0; i < Sys.events.length; ++i)
 		window[Sys.events[i]] = null;
@@ -16,7 +16,7 @@ Sys.Quit = function()
 		document.getElementById('end2').style.display = 'inline';
 	else
 		document.getElementById('end1').style.display = 'inline';
-	throw new Error;
+	// throw new Error;
 };
 
 Sys.Print = function(text)
@@ -27,8 +27,8 @@ Sys.Print = function(text)
 
 Sys.Error = function(text)
 {
-	if (Sys.frame != null)
-		clearInterval(Sys.frame);
+	if (Sys.looping)
+		Sys.looping = false;
 	var i;
 	for (i = 0; i < Sys.events.length; ++i)
 		window[Sys.events[i]] = null;
@@ -52,7 +52,7 @@ Sys.FloatTime = function()
 	return Date.now() * 0.001 - Sys.oldtime;
 };
 
-window.onload = function()
+window.onload = async function()
 {
 	if (Number.isNaN != null)
 		Q.isNaN = Number.isNaN;
@@ -141,12 +141,33 @@ window.onload = function()
 	Sys.oldtime = Date.now() * 0.001;
 
 	Sys.Print('Host.Init\n');
-	Host.Init();
+	await Host.Init();
 
 	for (i = 0; i < Sys.events.length; ++i)
 		window[Sys.events[i]] = Sys[Sys.events[i]];
 
-	Sys.frame = setInterval(Host.Frame, 1000.0 / 60.0);
+	const gameLoop = async () => {
+		var timeIn = Date.now();
+		try{
+			await Host.Frame();
+		} 
+		catch(e) {
+			if(e && e.message)
+			{
+				console.log(e && e.message)
+			}
+		}
+
+		if(!Sys.looping)
+			return;
+			
+		var putzAroundTime = Math.max((1000.0 / Sys.maxFps) - (Date.now() - timeIn), 0);
+		
+		return setTimeout(gameLoop, putzAroundTime);
+	}
+
+	Sys.looping = true;
+	gameLoop();
 };
 
 Sys.onbeforeunload = null;
@@ -156,35 +177,35 @@ Sys.oncontextmenu = function(e)
 	e.preventDefault();
 };
 
-Sys.onfocus = function()
+Sys.onfocus = async function()
 {
 	var i;
 	for (i = 0; i < 256; ++i)
 	{
-		Key.Event(i);
+		await Key.Event(i);
 		Key.down[i] = false;
 	}
 };
 
-Sys.onkeydown = function(e)
+Sys.onkeydown = async function(e)
 {
 	var key = Sys.scantokey[e.keyCode];
 	if (key == null)
 		return;
-	Key.Event(key, true);
+	await Key.Event(key, true);
 	e.preventDefault();
 };
 
-Sys.onkeyup = function(e)
+Sys.onkeyup = async function(e)
 {
 	var key = Sys.scantokey[e.keyCode];
 	if (key == null)
 		return;
-	Key.Event(key);
+	await Key.Event(key);
 	e.preventDefault();
 };
 
-Sys.onmousedown = function(e)
+Sys.onmousedown = async function(e)
 {
 	var key;
 	switch (e.which)
@@ -201,11 +222,11 @@ Sys.onmousedown = function(e)
 	default:
 		return;
 	}
-	Key.Event(key, true)
+	await Key.Event(key, true)
 	//e.preventDefault();
 };
 
-Sys.onmouseup = function(e)
+Sys.onmouseup = async function(e)
 {
 	var key;
 	switch (e.which)
@@ -222,15 +243,15 @@ Sys.onmouseup = function(e)
 	default:
 		return;
 	}
-	Key.Event(key)
+	await Key.Event(key)
 	e.preventDefault();
 };
 
-Sys.onmousewheel = function(e)
+Sys.onmousewheel = async function(e)
 {
 	var key = e.wheelDeltaY > 0 ? Key.k.mwheelup : Key.k.mwheeldown;
-	Key.Event(key, true);
-	Key.Event(key);
+	await Key.Event(key, true);
+	await Key.Event(key);
 	e.preventDefault();
 };
 
@@ -239,10 +260,10 @@ Sys.onunload = function()
 	Host.Shutdown();
 };
 
-Sys.onwheel = function(e)
+Sys.onwheel = async function(e)
 {
 	var key = e.deltaY < 0 ? Key.k.mwheelup : Key.k.mwheeldown;
-	Key.Event(key, true);
-	Key.Event(key);
+	await Key.Event(key, true);
+	await Key.Event(key);
 	e.preventDefault();
 };

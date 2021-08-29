@@ -11,7 +11,7 @@ S.listener_up = [0.0, 0.0, 0.0];
 
 S.known_sfx = [];
 
-S.Init = function()
+S.Init = async function()
 {
 	Con.Print('\nSound Initialization\n');
 	Cmd.AddCommand('play', S.Play);
@@ -36,9 +36,9 @@ S.Init = function()
 	var i, ambient_sfx = ['water1', 'wind2'], ch, nodes;
 	for (i = 0; i < ambient_sfx.length; ++i)
 	{
-		ch = {sfx: S.PrecacheSound('ambience/' + ambient_sfx[i] + '.wav'), end: 0.0, master_vol: 0.0};
+		ch = {sfx: await S.PrecacheSound('ambience/' + ambient_sfx[i] + '.wav'), end: 0.0, master_vol: 0.0};
 		S.ambient_channels[i] = ch;
-		if (S.LoadSound(ch.sfx) !== true)
+		if (await S.LoadSound(ch.sfx) !== true)
 			continue;
 		if (ch.sfx.cache.loopstart == null)
 		{
@@ -82,7 +82,7 @@ S.NoteOn = function(node)
 	}
 }
 
-S.PrecacheSound = function(name)
+S.PrecacheSound = async function(name)
 {
 	if (S.nosound.value !== 0)
 		return;
@@ -101,7 +101,7 @@ S.PrecacheSound = function(name)
 		sfx = S.known_sfx[i];
 	}
 	if (S.precache.value !== 0)
-		S.LoadSound(sfx);
+		await S.LoadSound(sfx);
 	return sfx;
 };
 
@@ -188,7 +188,7 @@ S.Spatialize = function(ch)
 		ch.leftvol = 0.0;
 };
 
-S.StartSound = function(entnum, entchannel, sfx, origin, vol, attenuation)
+S.StartSound = async function(entnum, entchannel, sfx, origin, vol, attenuation)
 {
 	if ((S.nosound.value !== 0) || (sfx == null))
 		return;
@@ -203,7 +203,7 @@ S.StartSound = function(entnum, entchannel, sfx, origin, vol, attenuation)
 	if ((target_chan.leftvol === 0.0) && (target_chan.rightvol === 0.0))
 		return;
 
-	if (S.LoadSound(sfx) !== true)
+	if (await S.LoadSound(sfx) !== true)
 	{
 		target_chan.sfx = null;
 		return;
@@ -275,7 +275,7 @@ S.StartSound = function(entnum, entchannel, sfx, origin, vol, attenuation)
 		if (volume > 1.0)
 			volume = 1.0;
 		target_chan.audio.volume = volume * S.volume.value;
-		target_chan.audio.play();
+		await target_chan.audio.play();
 	}
 };
 
@@ -350,11 +350,11 @@ S.StopAllSounds = function()
 	S.static_channels = [];
 };
 
-S.StaticSound = function(sfx, origin, vol, attenuation)
+S.StaticSound = async function(sfx, origin, vol, attenuation)
 {
 	if ((S.nosound.value !== 0) || (sfx == null))
 		return;
-	if (S.LoadSound(sfx) !== true)
+	if (await S.LoadSound(sfx) !== true)
 		return;
 	if (sfx.cache.loopstart == null)
 	{
@@ -422,12 +422,12 @@ S.SoundList = function()
 	Con.Print('Total resident: ' + total + '\n');
 };
 
-S.LocalSound = function(sound)
+S.LocalSound = async function(sound)
 {
-	S.StartSound(CL.state.viewentity, -1, sound, Vec.origin, 1.0, 1.0);
+	await S.StartSound(CL.state.viewentity, -1, sound, Vec.origin, 1.0, 1.0);
 };
 
-S.UpdateAmbientSounds = function()
+S.UpdateAmbientSounds = async function()
 {
 	if (CL.state.worldmodel == null)
 		return;
@@ -485,7 +485,7 @@ S.UpdateAmbientSounds = function()
 			else
 			{
 				if (ch.audio.paused !== true)
-					ch.audio.pause();
+					await ch.audio.pause();
 			}
 			continue;
 		}
@@ -502,7 +502,7 @@ S.UpdateAmbientSounds = function()
 			sc = ch.sfx.cache;
 			if (ch.audio.paused === true)
 			{
-				ch.audio.play();
+				await ch.audio.play();
 				ch.end = Host.realtime + sc.length;
 				continue;
 			}
@@ -580,7 +580,7 @@ S.UpdateDynamicSounds = function()
 	}
 };
 
-S.UpdateStaticSounds = function()
+S.UpdateStaticSounds = async function()
 {
 	var i, j, ch, ch2, sfx, sc, volume;
 
@@ -643,7 +643,7 @@ S.UpdateStaticSounds = function()
 			sc = ch.sfx.cache;
 			if (ch.audio.paused === true)
 			{
-				ch.audio.play();
+				await ch.audio.play();
 				ch.end = Host.realtime + sc.length;
 				continue;
 			}
@@ -663,7 +663,7 @@ S.UpdateStaticSounds = function()
 	}
 };
 
-S.Update = function(origin, forward, right, up)
+S.Update = async function(origin, forward, right, up)
 {
 	if (S.nosound.value !== 0)
 		return;
@@ -686,38 +686,38 @@ S.Update = function(origin, forward, right, up)
 	else if (S.volume.value > 1.0)
 		Cvar.SetValue('volume', 1.0);
 
-	S.UpdateAmbientSounds();
+	await S.UpdateAmbientSounds();
 	S.UpdateDynamicSounds();
-	S.UpdateStaticSounds();
+	await S.UpdateStaticSounds();
 };
 
-S.Play = function()
+S.Play = async function()
 {
 	if (S.nosound.value !== 0)
 		return;
 	var i, sfx;
 	for (i = 1; i < Cmd.argv.length; ++i)
 	{
-		sfx = S.PrecacheSound(COM.DefaultExtension(Cmd.argv[i], '.wav'));
+		sfx = await S.PrecacheSound(COM.DefaultExtension(Cmd.argv[i], '.wav'));
 		if (sfx != null)
-			S.StartSound(CL.state.viewentity, 0, sfx, S.listener_origin, 1.0, 1.0);
+			await S.StartSound(CL.state.viewentity, 0, sfx, S.listener_origin, 1.0, 1.0);
 	}
 };
 
-S.PlayVol = function()
+S.PlayVol = async function()
 {
 	if (S.nosound.value !== 0)
 		return;
 	var i, sfx;
 	for (i = 1; i < Cmd.argv.length; i += 2)
 	{
-		sfx = S.PrecacheSound(COM.DefaultExtension(Cmd.argv[i], '.wav'));
+		sfx = await S.PrecacheSound(COM.DefaultExtension(Cmd.argv[i], '.wav'));
 		if (sfx != null)
-			S.StartSound(CL.state.viewentity, 0, sfx, S.listener_origin, Q.atof(Cmd.argv[i + 1]), 1.0);
+			await S.StartSound(CL.state.viewentity, 0, sfx, S.listener_origin, Q.atof(Cmd.argv[i + 1]), 1.0);
 	}
 };
 
-S.LoadSound = function(s)
+S.LoadSound = async function(s)
 {
 	if (S.nosound.value !== 0)
 		return;
@@ -726,7 +726,7 @@ S.LoadSound = function(s)
 
 	var sc = {};
 
-	var data = COM.LoadFile('sound/' + s.name);
+	var data = await COM.LoadFile('sound/' + s.name);
 	if (data == null)
 	{
 		Con.Print('Couldn\'t load sound/' + s.name + '\n');

@@ -2,7 +2,7 @@ CDAudio = {};
 
 CDAudio.known = [];
 
-CDAudio.Play = function(track, looping)
+CDAudio.Play = async function(track, looping)
 {
 	if ((CDAudio.initialized !== true) || (CDAudio.enabled !== true))
 		return;
@@ -13,7 +13,7 @@ CDAudio.Play = function(track, looping)
 		{
 			CDAudio.cd.loop = looping;
 			if ((looping === true) && (CDAudio.cd.paused === true))
-				CDAudio.cd.play();
+				await CDAudio.cd.play();
 		}
 		return;
 	}
@@ -27,7 +27,7 @@ CDAudio.Play = function(track, looping)
 	CDAudio.cd = new Audio(CDAudio.known[track]);
 	CDAudio.cd.loop = looping;
 	CDAudio.cd.volume = CDAudio.cdvolume;
-	CDAudio.cd.play();
+	await CDAudio.cd.play();
 };
 
 CDAudio.Stop = function()
@@ -56,7 +56,7 @@ CDAudio.Resume = function()
 		CDAudio.cd.play();
 };
 
-CDAudio.CD_f = function()
+CDAudio.CD_f = async function()
 {
 	if ((CDAudio.initialized !== true) || (Cmd.argv.length <= 1))
 		return;
@@ -71,10 +71,10 @@ CDAudio.CD_f = function()
 		CDAudio.enabled = false;
 		return;
 	case 'play':
-		CDAudio.Play(Q.atoi(Cmd.argv[2]), false);
+		await CDAudio.Play(Q.atoi(Cmd.argv[2]), false);
 		return;
 	case 'loop':
-		CDAudio.Play(Q.atoi(Cmd.argv[2]), true);
+		await CDAudio.Play(Q.atoi(Cmd.argv[2]), true);
 		return;
 	case 'stop':
 		CDAudio.Stop();
@@ -83,7 +83,7 @@ CDAudio.CD_f = function()
 		CDAudio.Pause();
 		return;
 	case 'resume':
-		CDAudio.Resume();
+		await CDAudio.Resume();
 		return;
 	case 'info':
 		Con.Print(CDAudio.known.length + ' tracks\n');
@@ -112,21 +112,33 @@ CDAudio.Update = function()
 		CDAudio.cd.volume = CDAudio.cdvolume;
 };
 
-CDAudio.Init = function()
+CDAudio.TrackExists = async function(trackPath) {
+	return new Promise((resolve, reject) => {
+		const xhr = new XMLHttpRequest();
+		xhr.open('HEAD', trackPath);
+		xhr.onload = () => {
+			resolve({
+				status: xhr.status
+			});
+		}
+		xhr.onerror = (e) => reject(e) 
+		xhr.send();
+	})
+}
+
+CDAudio.Init = async function()
 {
 	Cmd.AddCommand('cd', CDAudio.CD_f);
 	if (COM.CheckParm('-nocdaudio') != null)
 		return;
 	var i, j, track;
-	var xhr = new XMLHttpRequest();
 	for (i = 1; i <= 99; ++i)
 	{
 		track = '/media/quake' + (i <= 9 ? '0' : '') + i + '.ogg';
 		for (j = COM.searchpaths.length - 1; j >= 0; --j)
 		{
-			xhr.open('HEAD', COM.searchpaths[j].filename + track, false);
-			xhr.send();
-			if ((xhr.status >= 200) && (xhr.status <= 299))
+			const exists = await CDAudio.TrackExists(COM.searchpaths[j].filename + track)
+			if ((exists.status >= 200) && (exists.status <= 299))
 			{
 				CDAudio.known[i - 1] = COM.searchpaths[j].filename + track;
 				break;

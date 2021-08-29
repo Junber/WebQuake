@@ -2,17 +2,17 @@ Host = {};
 
 Host.framecount = 0;
 
-Host.EndGame = function(message)
+Host.EndGame = async function(message)
 {
 	Con.DPrint('Host.EndGame: ' + message + '\n');
 	if (CL.cls.demonum !== -1)
 		CL.NextDemo();
 	else
-		CL.Disconnect();
+		await CL.Disconnect();
 	throw 'Host.abortserver';
 };
 
-Host.Error = function(error)
+Host.Error = async function(error)
 {
 	if (Host.inerror === true)
 		Sys.Error('Host.Error: recursively entered');
@@ -20,8 +20,8 @@ Host.Error = function(error)
 	SCR.EndLoadingPlaque();
 	Con.Print('Host.Error: ' + error + '\n');
 	if (SV.server.active === true)
-		Host.ShutdownServer();
-	CL.Disconnect();
+		await Host.ShutdownServer();
+	await CL.Disconnect();
 	CL.cls.demonum = -1;
 	Host.inerror = false;
 	throw new Error('Host.abortserver');
@@ -80,7 +80,7 @@ Host.BroadcastPrint = function(string)
 	}
 };
 
-Host.DropClient = function(crash)
+Host.DropClient = async function(crash)
 {
 	var client = Host.client;
 	if (crash !== true)
@@ -94,7 +94,7 @@ Host.DropClient = function(crash)
 		{
 			var saveSelf = PR.globals_int[PR.globalvars.self];
 			PR.globals_int[PR.globalvars.self] = client.edict.num;
-			PR.ExecuteProgram(PR.globals_int[PR.globalvars.ClientDisconnect]);
+			await PR.ExecuteProgram(PR.globals_int[PR.globalvars.ClientDisconnect]);
 			PR.globals_int[PR.globalvars.self] = saveSelf;
 		}
 		Sys.Print('Client ' + SV.GetClientName(client) + ' removed\n');
@@ -123,13 +123,13 @@ Host.DropClient = function(crash)
 	}
 };
 
-Host.ShutdownServer = function(crash)
+Host.ShutdownServer = async function(crash)
 {
 	if (SV.server.active !== true)
 		return;
 	SV.server.active = false;
 	if (CL.cls.state === CL.active.connected)
-		CL.Disconnect();
+		await CL.Disconnect();
 	var start = Sys.FloatTime(), count, i;
 	do
 	{
@@ -160,7 +160,7 @@ Host.ShutdownServer = function(crash)
 	{
 		Host.client = SV.svs.clients[i];
 		if (Host.client.active === true)
-			Host.DropClient(crash);
+			await Host.DropClient(crash);
 	}
 };
 
@@ -169,19 +169,19 @@ Host.WriteConfiguration = function()
 	COM.WriteTextFile('config.cfg', Key.WriteBindings() + Cvar.WriteVariables());
 };
 
-Host.ServerFrame = function()
+Host.ServerFrame = async function()
 {
 	PR.globals_float[PR.globalvars.frametime] = Host.frametime;
 	SV.server.datagram.cursize = 0;
-	SV.CheckForNewClients();
-	SV.RunClients();
+	await SV.CheckForNewClients();
+	await SV.RunClients();
 	if ((SV.server.paused !== true) && ((SV.svs.maxclients >= 2) || (Key.dest.value === Key.dest.game)))
-		SV.Physics();
-	SV.SendClientMessages();
+		await SV.Physics();
+	await SV.SendClientMessages();
 };
 
 Host.time3 = 0.0;
-Host._Frame = function()
+Host._Frame = async function()
 {
 	Math.random();
 
@@ -200,21 +200,21 @@ Host._Frame = function()
 
 	if (CL.cls.state === CL.active.connecting)
 	{
-		NET.CheckForResend();
+		await NET.CheckForResend();
 		SCR.UpdateScreen();
 		return;
 	}
 
 	var time1, time2, pass1, pass2, pass3, tot;
 
-	Cmd.Execute();
+	await Cmd.Execute();
 
-	CL.SendCmd();
+	await CL.SendCmd();
 	if (SV.server.active === true)
-		Host.ServerFrame();
+		await Host.ServerFrame();
 
 	if (CL.cls.state === CL.active.connected)
-		CL.ReadFromServer();
+		await CL.ReadFromServer();
 
 	if (Host.speeds.value !== 0)
 		time1 = Sys.FloatTime();
@@ -224,11 +224,11 @@ Host._Frame = function()
 
 	if (CL.cls.signon === 4)
 	{
-		S.Update(R.refdef.vieworg, R.vpn, R.vright, R.vup);
+		await S.Update(R.refdef.vieworg, R.vpn, R.vright, R.vup);
 		CL.DecayLights();
 	}
 	else
-		S.Update(Vec.origin, Vec.origin, Vec.origin, Vec.origin);
+		await S.Update(Vec.origin, Vec.origin, Vec.origin, Vec.origin);
 	CDAudio.Update();
 
 	if (Host.speeds.value !== 0)
@@ -259,15 +259,15 @@ Host._Frame = function()
 
 Host.timetotal = 0.0;
 Host.timecount = 0;
-Host.Frame = function()
+Host.Frame = async function()
 {
 	if (Host.serverprofile.value === 0)
 	{
-		Host._Frame();
+		await Host._Frame();
 		return;
 	}
 	var time1 = Sys.FloatTime();
-	Host._Frame();
+	await Host._Frame();
 	Host.timetotal += Sys.FloatTime() - time1;
 	if (++Host.timecount <= 999)
 		return;
@@ -283,15 +283,15 @@ Host.Frame = function()
 	Con.Print('serverprofile: ' + (c <= 9 ? ' ' : '') + c + ' clients ' + (m <= 9 ? ' ' : '') + m + ' msec\n');
 };
 
-Host.Init = function()
+Host.Init = async function()
 {
 	Host.oldrealtime = Sys.FloatTime();
 	Cmd.Init();
 	V.Init();
 	Chase.Init();
-	COM.Init();
+	await COM.Init();
 	Host.InitLocal();
-	W.LoadWadFile('gfx.wad');
+	await W.LoadWadFile('gfx.wad');
 	Key.Init();
 	Con.Init();
 	PR.Init();
@@ -299,15 +299,15 @@ Host.Init = function()
 	NET.Init();
 	SV.Init();
 	Con.Print(Def.timedate);
-	VID.Init();
-	Draw.Init();
-	SCR.Init();
+	await VID.Init();
+	await Draw.Init();
+	await SCR.Init();
 	R.Init();
-	S.Init();
-	M.Init();
-	CDAudio.Init();
-	Sbar.Init();
-	CL.Init();
+	await S.Init();
+	await M.Init();
+	await CDAudio.Init();
+	await Sbar.Init();
+	await CL.Init();
 	IN.Init();
 	Cmd.text = 'exec quake.rc\n' + Cmd.text;
 	Host.initialized = true;
@@ -501,7 +501,7 @@ Host.Ping_f = function()
 	}
 };
 
-Host.Map_f = function()
+Host.Map_f = async function()
 {
 	if (Cmd.argv.length <= 1)
 	{
@@ -511,22 +511,22 @@ Host.Map_f = function()
 	if (Cmd.client === true)
 		return;
 	CL.cls.demonum = -1;
-	CL.Disconnect();
-	Host.ShutdownServer();
+	await CL.Disconnect();
+	await Host.ShutdownServer();
 	Key.dest.value = Key.dest.game;
 	SCR.BeginLoadingPlaque();
 	SV.svs.serverflags = 0;
-	SV.SpawnServer(Cmd.argv[1]);
+	await SV.SpawnServer(Cmd.argv[1]);
 	if (SV.server.active !== true)
 		return;
 	CL.cls.spawnparms = '';
 	var i;
 	for (i = 2; i < Cmd.argv.length; ++i)
 		CL.cls.spawnparms += Cmd.argv[i] + ' ';
-	Cmd.ExecuteString('connect local');
+	await Cmd.ExecuteString('connect local');
 };
 
-Host.Changelevel_f = function()
+Host.Changelevel_f = async function()
 {
 	if (Cmd.argv.length !== 2)
 	{
@@ -538,14 +538,14 @@ Host.Changelevel_f = function()
 		Con.Print('Only the server may changelevel\n');
 		return;
 	}
-	SV.SaveSpawnparms();
-	SV.SpawnServer(Cmd.argv[1]);
+	await SV.SaveSpawnparms();
+	await SV.SpawnServer(Cmd.argv[1]);
 };
 
-Host.Restart_f = function()
+Host.Restart_f = async function()
 {
 	if ((CL.cls.demoplayback !== true) && (SV.server.active === true) && (Cmd.client !== true))
-		SV.SpawnServer(PR.GetString(PR.globals_int[PR.globalvars.mapname]));
+		await SV.SpawnServer(PR.GetString(PR.globals_int[PR.globalvars.mapname]));
 };
 
 Host.Reconnect_f = function()
@@ -554,15 +554,15 @@ Host.Reconnect_f = function()
 	CL.cls.signon = 0;
 };
 
-Host.Connect_f = function()
+Host.Connect_f = async function()
 {
 	CL.cls.demonum = -1;
 	if (CL.cls.demoplayback === true)
 	{
 		CL.StopPlayback();
-		CL.Disconnect();
+		await CL.Disconnect();
 	}
-	CL.EstablishConnection(Cmd.argv[1]);
+	await CL.EstablishConnection(Cmd.argv[1]);
 	CL.cls.signon = 0;
 };
 
@@ -694,7 +694,7 @@ Host.Savegame_f = function()
 		Con.Print('ERROR: couldn\'t open.\n');
 };
 
-Host.Loadgame_f = function()
+Host.Loadgame_f = async function()
 {
 	if (Cmd.client === true)
 		return;
@@ -706,7 +706,7 @@ Host.Loadgame_f = function()
 	CL.cls.demonum = -1;
 	var name = COM.DefaultExtension(Cmd.argv[1], '.sav');
 	Con.Print('Loading game from ' + name + '...\n');
-	var f = COM.LoadTextFile(name);
+	var f = await COM.LoadTextFile(name);
 	if (f == null)
 	{
 		Con.Print('ERROR: couldn\'t open.\n');
@@ -731,8 +731,8 @@ Host.Loadgame_f = function()
 	Cvar.SetValue('skill', Host.current_skill);
 
 	var time = parseFloat(f[20]);
-	CL.Disconnect();
-	SV.SpawnServer(f[19]);
+	await CL.Disconnect();
+	await SV.SpawnServer(f[19]);
 	if (SV.server.active !== true)
 	{
 		Con.Print('Couldn\'t load map\n');
@@ -764,7 +764,7 @@ Host.Loadgame_f = function()
 			continue;
 		}
 		if (ED.ParseEpair(PR.globals, key, token[3]) !== true)
-			Host.Error('Host.Loadgame_f: parse error');
+			await Host.Error('Host.Loadgame_f: parse error');
 	}
 
 	f[f.length] = '';
@@ -781,9 +781,9 @@ Host.Loadgame_f = function()
 		for (j = 0; j < PR.entityfields; ++j)
 			ent.v_int[j] = 0;
 		ent.free = false;
-		data = ED.ParseEdict(data, ent);
+		data = await ED.ParseEdict(data, ent);
 		if (ent.free !== true)
-			SV.LinkEdict(ent);
+			await SV.LinkEdict(ent);
 	}
 	SV.server.num_edicts = entnum;
 
@@ -792,7 +792,7 @@ Host.Loadgame_f = function()
 	client.spawn_parms = [];
 	for (i = 0; i <= 15; ++i)
 		client.spawn_parms[i] = spawn_parms[i];
-	CL.EstablishConnection('local');
+	await CL.EstablishConnection('local');
 	Host.Reconnect_f();
 };
 
@@ -952,7 +952,7 @@ Host.Color_f = function()
 	MSG.WriteByte(msg, playercolor);
 };
 
-Host.Kill_f = function()
+Host.Kill_f = async function()
 {
 	if (Cmd.client !== true)
 	{
@@ -966,7 +966,7 @@ Host.Kill_f = function()
 	}
 	PR.globals_float[PR.globalvars.time] = SV.server.time;
 	PR.globals_int[PR.globalvars.self] = SV.player.num;
-	PR.ExecuteProgram(PR.globals_int[PR.globalvars.ClientKill]);
+	await PR.ExecuteProgram(PR.globals_int[PR.globalvars.ClientKill]);
 };
 
 Host.Pause_f = function()
@@ -1006,7 +1006,7 @@ Host.PreSpawn_f = function()
 	client.sendsignon = true;
 };
 
-Host.Spawn_f = function()
+Host.Spawn_f = async function()
 {
 	if (Cmd.client !== true)
 	{
@@ -1036,10 +1036,10 @@ Host.Spawn_f = function()
 			PR.globals_float[PR.globalvars.parms + i] = client.spawn_parms[i];
 		PR.globals_float[PR.globalvars.time] = SV.server.time;
 		PR.globals_int[PR.globalvars.self] = ent.num;
-		PR.ExecuteProgram(PR.globals_int[PR.globalvars.ClientConnect]);
+		await PR.ExecuteProgram(PR.globals_int[PR.globalvars.ClientConnect]);
 		if ((Sys.FloatTime() - client.netconnection.connecttime) <= SV.server.time)
 			Sys.Print(SV.GetClientName(client) + ' entered the game\n');
-		PR.ExecuteProgram(PR.globals_int[PR.globalvars.PutClientInServer]);
+		await PR.ExecuteProgram(PR.globals_int[PR.globalvars.PutClientInServer]);
 	}
 
 	var message = client.message;
@@ -1097,7 +1097,7 @@ Host.Begin_f = function()
 	Host.client.spawned = true;
 };
 
-Host.Kick_f = function()
+Host.Kick_f = async function()
 {
 	if (Cmd.client !== true)
 	{
@@ -1176,7 +1176,7 @@ Host.Kick_f = function()
 	}
 	else
 		Host.ClientPrint('Kicked by ' + who + '\n');
-	Host.DropClient();
+	await Host.DropClient();
 	Host.client = save;
 };
 
@@ -1314,14 +1314,14 @@ Host.FindViewthing = function()
 	Con.Print('No viewthing on map\n');
 };
 
-Host.Viewmodel_f = function()
+Host.Viewmodel_f = async function()
 {
 	if (Cmd.argv.length !== 2)
 		return;
 	var e = Host.FindViewthing();
 	if (e == null)
 		return;
-	var m = Mod.ForName(Cmd.argv[1]);
+	var m = await Mod.ForName(Cmd.argv[1]);
 	if (m == null)
 	{
 		Con.Print('Can\'t load ' + Cmd.argv[1] + '\n');
@@ -1388,20 +1388,20 @@ Host.Startdemos_f = function()
 		CL.cls.demonum = -1;
 };
 
-Host.Demos_f = function()
+Host.Demos_f = async function()
 {
 	if (CL.cls.demonum === -1)
 		CL.cls.demonum = 1;
-	CL.Disconnect();
+	await CL.Disconnect();
 	CL.NextDemo();
 };
 
-Host.Stopdemo_f = function()
+Host.Stopdemo_f = async function()
 {
 	if (CL.cls.demoplayback !== true)
 		return;
 	CL.StopPlayback();
-	CL.Disconnect();
+	await CL.Disconnect();
 };
 
 Host.InitCommands = function()

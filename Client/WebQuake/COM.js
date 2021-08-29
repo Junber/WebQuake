@@ -4,6 +4,39 @@ COM.argv = [];
 
 COM.standard_quake = true;
 
+COM.GetFile = async function(file) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.overrideMimeType('text/plain; charset=x-user-defined');
+    xhr.open('GET', file);
+    xhr.onload = () => {
+      resolve({
+        status: xhr.status,
+        responseText: xhr.responseText
+      });
+    }
+    xhr.onerror = (e) => reject(e) 
+    xhr.send();
+  });
+};
+
+COM.GetFileRange = async function(file, rangeFrom, rangeTo) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.overrideMimeType('text/plain; charset=x-user-defined');
+    xhr.open('GET', file);
+    xhr.setRequestHeader('Range', 'bytes=' + rangeFrom + '-' + rangeTo);
+    xhr.onload = () => {
+      resolve({
+        status: xhr.status,
+        responseText: xhr.responseText
+      });
+    }
+    xhr.onerror = (e) => reject(e)
+    xhr.send();
+  });
+};
+
 COM.DefaultExtension = function(path, extension)
 {
 	var i, src;
@@ -87,9 +120,9 @@ COM.CheckParm = function(parm)
 	}
 };
 
-COM.CheckRegistered = function()
+COM.CheckRegistered = async function()
 {
-	var h = COM.LoadFile('gfx/pop.lmp');
+	var h = await COM.LoadFile('gfx/pop.lmp');
 	if (h == null)
 	{
 		Con.Print('Playing shareware version.\n');
@@ -151,7 +184,7 @@ COM.InitArgv = function(argv)
 	}
 };
 
-COM.Init = function()
+COM.Init = async function()
 {
 	if ((document.location.protocol !== 'http:') && (document.location.protocol !== 'https:'))
 		Sys.Error('Protocol is ' + document.location.protocol + ', not http: or https:');
@@ -168,8 +201,8 @@ COM.Init = function()
 	COM.registered = Cvar.RegisterVariable('registered', '0');
 	Cvar.RegisterVariable('cmdline', COM.cmdline, false, true);
 	Cmd.AddCommand('path', COM.Path_f);
-	COM.InitFilesystem();
-	COM.CheckRegistered();
+	await COM.InitFilesystem();
+	await COM.CheckRegistered();
 };
 
 COM.searchpaths = [];
@@ -222,7 +255,7 @@ COM.WriteTextFile = function(filename, data)
 	return true;
 };
 
-COM.LoadFile = function(filename)
+COM.LoadFile = async function(filename)
 {
 	filename = filename.toLowerCase();
 
@@ -232,8 +265,6 @@ COM.LoadFile = function(filename)
 		return Host.Link();
 	}
 	
-	var xhr = new XMLHttpRequest();
-	xhr.overrideMimeType('text/plain; charset=x-user-defined');
 	var i, j, k, search, netpath, pak, file, data;
 	Draw.BeginDisc();
 	for (i = COM.searchpaths.length - 1; i >= 0; --i)
@@ -259,35 +290,33 @@ COM.LoadFile = function(filename)
 				{
 					Draw.EndDisc();
 					return new ArrayBuffer(0);
-				}
-				xhr.open('GET', search.filename + '/pak' + j + '.pak', false);
-				xhr.setRequestHeader('Range', 'bytes=' + file.filepos + '-' + (file.filepos + file.filelen - 1));
-				xhr.send();
-				if ((xhr.status >= 200) && (xhr.status <= 299) && (xhr.responseText.length === file.filelen))
+        }
+        const gotFile = await COM.GetFileRange(search.filename + '/pak' + j + '.pak', file.filepos, (file.filepos + file.filelen - 1))
+				
+				if ((gotFile.status >= 200) && (gotFile.status <= 299) && (gotFile.responseText.length === file.filelen))
 				{
 					Sys.Print('PackFile: ' + search.filename + '/pak' + j + '.pak : ' + filename + '\n')
 					Draw.EndDisc();
-					return Q.strmem(xhr.responseText);
+					return Q.strmem(gotFile.responseText);
 				}
 				break;
 			}
-		}
-		xhr.open('GET', netpath, false);
-		xhr.send();
-		if ((xhr.status >= 200) && (xhr.status <= 299))
+    }
+    const gotFile = await COM.GetFile(netpath);
+		if ((gotFile.status >= 200) && (gotFile.status <= 299))
 		{
 			Sys.Print('FindFile: ' + netpath + '\n');
 			Draw.EndDisc();
-			return Q.strmem(xhr.responseText);
+			return Q.strmem(gotFile.responseText);
 		}
 	}
 	Sys.Print('FindFile: can\'t find ' + filename + '\n');
 	Draw.EndDisc();
 };
 
-COM.LoadTextFile = function(filename)
+COM.LoadTextFile = async function(filename)
 {
-	var buf = COM.LoadFile(filename);
+	var buf = await COM.LoadFile(filename);
 	if (buf == null)
 		return;
 	var bufview = new Uint8Array(buf);
@@ -301,16 +330,12 @@ COM.LoadTextFile = function(filename)
 	return f.join('');
 };
 
-COM.LoadPackFile = function(packfile)
+COM.LoadPackFile = async function(packfile)
 {
-	var xhr = new XMLHttpRequest();
-	xhr.overrideMimeType('text/plain; charset=x-user-defined');
-	xhr.open('GET', packfile, false);
-	xhr.setRequestHeader('Range', 'bytes=0-11');
-	xhr.send();
-	if ((xhr.status <= 199) || (xhr.status >= 300) || (xhr.responseText.length !== 12))
+  const gotHeader = await COM.GetFileRange(packfile, 0, 11);
+	if ((gotHeader.status <= 199) || (gotHeader.status >= 300) || (gotHeader.responseText.length !== 12))
 		return;
-	var header = new DataView(Q.strmem(xhr.responseText));
+	var header = new DataView(Q.strmem(gotHeader.responseText));
 	if (header.getUint32(0, true) !== 0x4b434150)
 		Sys.Error(packfile + ' is not a packfile');
 	var dirofs = header.getUint32(4, true);
@@ -321,12 +346,10 @@ COM.LoadPackFile = function(packfile)
 	var pack = [];
 	if (numpackfiles !== 0)
 	{
-		xhr.open('GET', packfile, false);
-		xhr.setRequestHeader('Range', 'bytes=' + dirofs + '-' + (dirofs + dirlen - 1));
-		xhr.send();
-		if ((xhr.status <= 199) || (xhr.status >= 300) || (xhr.responseText.length !== dirlen))
+    const fileInfo = await COM.GetFileRange(packfile, dirofs, (dirofs + dirlen - 1))
+		if ((fileInfo.status <= 199) || (fileInfo.status >= 300) || (fileInfo.responseText.length !== dirlen))
 			return;
-		var info = Q.strmem(xhr.responseText);
+		var info = Q.strmem(fileInfo.responseText);
 		if (CRC.Block(new Uint8Array(info)) !== 32981)
 			COM.modified = true;
 		var i;
@@ -344,13 +367,13 @@ COM.LoadPackFile = function(packfile)
 	return pack;
 };
 
-COM.AddGameDirectory = function(dir)
+COM.AddGameDirectory = async function(dir)
 {
 	var search = {filename: dir, pack: []};
 	var pak, i = 0;
 	for (;;)
 	{
-		pak = COM.LoadPackFile(dir + '/' + 'pak' + i + '.pak');
+		pak = await COM.LoadPackFile(dir + '/' + 'pak' + i + '.pak');
 		if (pak == null)
 			break;
 		search.pack[search.pack.length] = pak;
@@ -359,7 +382,7 @@ COM.AddGameDirectory = function(dir)
 	COM.searchpaths[COM.searchpaths.length] = search;
 };
 
-COM.InitFilesystem = function()
+COM.InitFilesystem = async function()
 {
 	var i, search;
 	
@@ -367,14 +390,14 @@ COM.InitFilesystem = function()
 	if (i != null)
 		search = COM.argv[i + 1];
 	if (search != null)
-		COM.AddGameDirectory(search);
+		await COM.AddGameDirectory(search);
 	else
-		COM.AddGameDirectory('id1');
+		await COM.AddGameDirectory('id1');
 		
 	if (COM.rogue === true)
-		COM.AddGameDirectory('rogue');
+		await COM.AddGameDirectory('rogue');
 	else if (COM.hipnotic === true)
-		COM.AddGameDirectory('hipnotic');
+		await COM.AddGameDirectory('hipnotic');
 		
 	i = COM.CheckParm('-game');
 	if (i != null)
