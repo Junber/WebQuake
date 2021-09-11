@@ -1,3 +1,20 @@
+# WebQuake-Stripped
+
+This is a fork of WebQuake (Find the original README below). It makes some stuff work better for itch.io and adds empty resources. This is such that you can simply add a custom level ( `Client/id1/maps/level1.bsp` by default) and play it out of the box without needing any of Quake's resources. In this default configuration, shooting is disabled and there are no enemies, items, etc. Effectively, the game works as a walking simulator. To enable that stuff again, simply edit or replace the appropriate resources (in `Client/id1`) as described below:
+
+- `default.cfg` is a text file containing the default controls and automatic level loading. Enable shooting there.
+- `config.cfg` and `autoexec.cfg` should just be left empty and `quake.rc` probably unmodified.
+- `gfx.wad` contains UI sprites. Edit with e.g. [AdQuedit](https://valvedev.info/tools/adquedit/).
+- `progs.dat` contains compiled Quake game play code. Here, the [Quake 1.06 qc source](http://icculus.org/twilight/darkplaces/files/id1qc.zip) compiled with [qcc](https://github.com/hypn/quake-qcc-binaries) is supplied.
+- `gfx/` contains more UI sprites. Edit with e.g. [AdQuedit](https://valvedev.info/tools/adquedit/).
+- `maps/` should contain maps. Use e.g. [TrenchBroom](https://trenchbroom.github.io/) to make those.
+- `music/` can contain `quake01.ogg` which is played as background music.
+- `progs/` contains 3D models (`.mdl`) and 3D sprites (`.spr`). Export 3D models with e.g. [this blender add-on](https://github.com/victorfeitosa/quake-hexen2-mdl-export-import) and edit 3D sprites with e.g. [AdQuedit](https://valvedev.info/tools/adquedit/).
+- `sound/` contains sound effects.
+
+You can find non-empty, free resources in e.g. [LibreQuake](https://github.com/MissLav/LibreQuake) or use the proprietary assets from the full or shareware version of Quake itself as described in the WebQuake README below.
+
+
 # WebQuake
 
 **WebQuake** is an HTML5 WebGL port of the game Quake by id Software.
