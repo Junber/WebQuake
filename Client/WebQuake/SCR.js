@@ -84,7 +84,7 @@ SCR.CalcRefdef = function()
 	else
 	{
 		size = SCR.viewsize.value;
-		if (size >= 120.0)
+		if (size >= 120.0 || Config.DisableStatusBar)
 			Sbar.lines = 0;
 		else if (size >= 110.0)
 			Sbar.lines = 24;

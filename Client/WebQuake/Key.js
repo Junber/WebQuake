@@ -389,8 +389,8 @@ Key.Event = async function(key, down)
 			Key.Message(key);
 		else if (Key.dest.value === Key.dest.menu)
 			await M.Keydown(key);
-		//else
-		//	M.ToggleMenu_f();
+		else if (!Config.DisableMenu)
+			M.ToggleMenu_f();
 		return;
 	}
 
