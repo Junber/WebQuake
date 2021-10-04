@@ -4,9 +4,9 @@ This is a fork of WebQuake (Find the original README below). It makes some stuff
 
 - `default.cfg` is a text file containing the default controls and automatic level loading. Enable shooting there.
 - `config.cfg` and `autoexec.cfg` should just be left empty and `quake.rc` probably unmodified.
-- `gfx.wad` contains UI sprites. Edit with e.g. [AdQuedit](https://valvedev.info/tools/adquedit/).
+- `gfx.wad` contains UI sprites. Edit with e.g. [AdQuedit](https://valvedev.info/tools/adquedit/) (source images have to be .pcx).
 - `progs.dat` contains compiled Quake game play code. Here, the [Quake 1.06 qc source](http://icculus.org/twilight/darkplaces/files/id1qc.zip) compiled with [qcc](https://github.com/hypn/quake-qcc-binaries) is supplied.
-- `gfx/` contains more UI sprites. Edit with e.g. [AdQuedit](https://valvedev.info/tools/adquedit/).
+- `gfx/` contains more UI sprites. Edit with e.g. [AdQuedit](https://valvedev.info/tools/adquedit/) (source images have to be .pcx).
 - `maps/` should contain maps. Use e.g. [TrenchBroom](https://trenchbroom.github.io/) to make those.
 - `music/` can contain `quake01.ogg` which is played as background music.
 - `progs/` contains 3D models (`.mdl`) and 3D sprites (`.spr`). Export 3D models with e.g. [this blender add-on](https://github.com/victorfeitosa/quake-hexen2-mdl-export-import) and edit 3D sprites with e.g. [AdQuedit](https://valvedev.info/tools/adquedit/).
